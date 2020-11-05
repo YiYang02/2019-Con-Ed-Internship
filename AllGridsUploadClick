@@ -1,0 +1,631 @@
+Dim CurrentGrid As String
+Public Current_A As Range 'public variables so userform1 can use them
+Public Current_B As Range
+Public Current_C As Range
+Public feeder_ExcelFile As Variant
+Public SheetName As String
+
+Public passedFlatbush As Boolean
+Public passedRichmond As Boolean
+Public passedLivonia As Boolean
+Public passedRego As Boolean
+Public passedFlushing As Boolean
+Public passedFlushingMB As Boolean
+Public passedHollis As Boolean
+Public passedGlen As Boolean
+Public passedJamaica As Boolean
+
+Public Source_File As String
+Public Master_File As String
+
+Public destination As Worksheet
+Public wsMT As Worksheet
+
+Public dateCell1 As String
+Public dateCell2 As String
+Public dateCell3 As String
+
+Public source As Worksheet
+
+Private Sub AllGridsUpload_Click()
+    
+Application.DisplayAlerts = False 'when set to false, supresses prompts and alert messages while a macro is running
+Application.CutCopyMode = False 'when false--not in cut or copy mode
+Sheets("AllGridTemp").Range("A3:E999").ClearContents 'delete the cell contents in that range
+Application.ScreenUpdating = False 'screen doesn't refresh
+    feeder_ExcelFile = Application.GetOpenFilename _
+    (FileFilter:="Excel Files,*.xl*;*.xm*")
+    'variable WorkbookSelect contains the user-selected file name
+        If feeder_ExcelFile = False Then 'prob when user presses cancel or x
+            MsgBox "No file selected.", vbExclamation, "Error"
+            'no file selected msg pops up
+            
+        Exit Sub
+            
+        Else
+        
+             list = "Flatbush," & "Richmond Hill," & "Livonia MB," & "Flushing," & "Rego Park," & "Flushing MB," & "Hollis MB," _
+             & "Glen Oaks," & "Jamaica"
+             For Each Q In Split(list, ",")
+                Set ws = Sheets(Q)
+                
+                Select Case Q
+                
+                Case "Flatbush"
+                        passedFlatbush = True
+                        
+                        gridsToTemp
+                        flatbushToMaster
+                        passedFlatbush = False
+                        highlightFlatbush
+                        errorCheck3
+                        
+                Case "Richmond Hill"
+                        passedRichmond = True
+                        
+                        gridsToTemp
+                        richmondToMaster
+                        passedRichmond = False
+                        highlightRichmond
+                        errorCheck3
+                        
+                Case "Livonia MB"
+                
+                        passedLivonia = True
+                        
+                        gridsToTemp
+                        livoniaToMaster
+                        passedLivonia = False
+                        highlightLivonia
+                        errorCheck3
+                        
+                Case "Rego Park"
+                
+                        passedRego = True
+                        
+                        gridsToTemp
+                        regoToMaster
+                        passedRego = False
+                        highlightRego
+                        errorCheck3
+                        
+                Case "Flushing"
+                
+                        passedFlushing = True
+                        
+                        gridsToTemp
+                        flushingToMaster
+                        passedFlushing = False
+                        highlightFlushing
+                        errorCheck3
+                        
+                Case "Flushing MB"
+                
+                        passedFlushingMB = True
+                        
+                        gridsToTemp
+                        flushingMBToMaster
+                        passedFlushingMB = False
+                        highlightFlushingMB
+                        errorCheck3
+                        
+                Case "Hollis MB"
+                
+                        passedHollis = True
+                        
+                        gridsToTemp
+                        hollisToMaster
+                        passedHollis = False
+                        highlightHollis
+                        errorCheck3
+                        
+                Case "Glen Oaks"
+                
+                        passedGlen = True
+                        
+                        gridsToTemp
+                        glenToMaster
+                        passedGlen = False
+                        highlightGlen
+                        errorCheck3
+                        
+                Case "Jamaica"
+                
+                        passedJamaica = True
+                        
+                        gridsToTemp
+                        jamaicaToMaster
+                        passedJamaica = False
+                        highlightJamaica
+                        errorCheck3
+                        
+                        
+                    
+              End Select
+            
+            Next Q
+            
+        End If
+        
+        Worksheets("Flatbush").Activate 'goes back to flatbush for user
+        MsgBox "Extraction Successful", vbExclamation
+        phaseImbalanceCheck
+        OldReadingCheck
+End Sub 'for some reason the macro stops after Richmond Hill, when I ran a line by line debug, after richmond it goes to the
+'5 conditional if statement, and then goes to the next, then back to 5 conditional if statement, and finally goes to Livonia
+
+Public Sub gridsToTemp()
+    
+    Workbooks.Open Filename:=feeder_ExcelFile 'opens the user-selected file
+                
+    Dim wbS As Workbook 'this dim set up was from https://stackoverflow.com/questions/39974642/vba-how-to-reference-cells-in-two-workbooks-at-the-same-time
+    Dim wbM As Workbook
+    Dim wsS As Worksheet
+    Dim wsM As Worksheet
+    Dim wsMT As Worksheet
+    
+    Master_File = ThisWorkbook.Name
+    Source_File = ActiveWorkbook.Name
+    
+    Set wbS = Workbooks(Source_File)
+    Set wbM = Workbooks(Master_File)
+    
+    Set wsSDate = wbS.Sheets("Date")
+    Set wsS1 = wbS.Sheets("Flatbush")
+    Set wsS2 = wbS.Sheets("Richmond Hill")
+    Set wsS3 = wbS.Sheets("Livonia MB")
+    Set wsS4 = wbS.Sheets("Rego Park")
+    Set wsS5 = wbS.Sheets("Flushing")
+    Set wsS6 = wbS.Sheets("Flushing MB")
+    Set wsS7 = wbS.Sheets("Hollis MB")
+    Set wsS8 = wbS.Sheets("Glen Oaks")
+    Set wsS9 = wbS.Sheets("Jamaica")
+    
+    Set wsM1 = wbM.Sheets("Flatbush")
+    Set wsM2 = wbM.Sheets("Richmond Hill")
+    Set wsM3 = wbM.Sheets("Livonia MB")
+    Set wsM4 = wbM.Sheets("Rego Park")
+    Set wsM5 = wbM.Sheets("Flushing")
+    Set wsM6 = wbM.Sheets("Flushing MB")
+    Set wsM7 = wbM.Sheets("Hollis MB")
+    Set wsM8 = wbM.Sheets("Glen Oaks")
+    Set wsM9 = wbM.Sheets("Jamaica")
+    
+    
+    Set wsMT = wbM.Sheets("AllGridTemp")
+      
+    
+                If passedFlatbush = True Then
+                    Set source = wsS1
+                    Set destination = wsM1
+                    dateCell1 = "D6"
+                    dateCell2 = "E6"
+                    dateCell3 = "F6"
+                    
+                ElseIf passedRichmond = True Then
+                    Set source = wsS2
+                    Set destination = wsM2
+                    dateCell1 = "D13"
+                    dateCell2 = "E13"
+                    dateCell3 = "F13"
+                
+                ElseIf passedLivonia = True Then
+                    Set source = wsS3
+                    Set destination = wsM3
+                    dateCell1 = "D10"
+                    dateCell2 = "E10"
+                    dateCell3 = "F10"
+                    
+                ElseIf passedRego = True Then
+                    Set source = wsS4
+                    Set destination = wsM4
+                    dateCell1 = "D12"
+                    dateCell2 = "E12"
+                    dateCell3 = "F12"
+                    
+                
+                ElseIf passedFlushing = True Then
+                    Set source = wsS5
+                    Set destination = wsM5
+                    dateCell1 = "D7"
+                    dateCell2 = "E7"
+                    dateCell3 = "F7"
+                    
+                ElseIf passedFlushingMB = True Then
+                    Set source = wsS6
+                    Set destination = wsM6
+                    dateCell1 = "D8"
+                    dateCell2 = "E8"
+                    dateCell3 = "F8"
+                    
+                ElseIf passedHollis = True Then
+                    Set source = wsS7
+                    Set destination = wsM7
+                    dateCell1 = "D11"
+                    dateCell2 = "E11"
+                    dateCell3 = "F11"
+                    
+                ElseIf passedGlen = True Then
+                    Set source = wsS8
+                    Set destination = wsM8
+                    dateCell1 = "D9"
+                    dateCell2 = "E9"
+                    dateCell3 = "F9"
+                    
+                ElseIf passedJamaica = True Then
+                    Set source = wsS9
+                    Set destination = wsM9
+                    dateCell1 = "D14"
+                    dateCell2 = "E14"
+                    dateCell3 = "F14"
+                
+                End If
+                
+                Set Feeder_USS = source.Range("A7", source.Range("B7").End(xlDown)) 'FEEDER AND USS
+                    Feeder_USS.Copy
+                            ActiveSheet.Paste destination:=wsMT.Range("A3") 'the destination of the paste
+                            Application.CutCopyMode = False
+                
+                Set gridTitle = source.Range("A5")
+                    gridTitle.Copy
+                            ActiveSheet.Paste destination:=wsMT.Range("A1")
+                            Application.CutCopyMode = False
+                
+                Set Current_A = source.Range("L7", source.Range("L7").End(xlDown))
+                    Current_A.Copy
+                            wsMT.Range("C3").PasteSpecial Paste:=xlPasteValues
+                            Application.CutCopyMode = False
+                        
+                Set Current_B = source.Range("T7", source.Range("T7").End(xlDown))
+                    Current_B.Copy
+                            wsMT.Range("D3").PasteSpecial Paste:=xlPasteValues
+                            Application.CutCopyMode = False
+                        
+                Set Current_C = source.Range("AB7", source.Range("AB7").End(xlDown))
+                    Current_C.Copy
+                            wsMT.Range("E3").PasteSpecial Paste:=xlPasteValues
+                            Application.CutCopyMode = False
+                
+                On Error Resume Next
+                
+                Set Date1 = wsSDate.Range(dateCell1).Copy
+                            ActiveSheet.Paste destination:=destination.Range("C6") 'extraction sheet to master
+                            destination.Range("C6").Value = destination.Range("C6").Value
+                            Application.CutCopyMode = False
+                            
+                Set Date2 = wsSDate.Range(dateCell2).Copy
+                            ActiveSheet.Paste destination:=destination.Range("D6") 'extraction sheet to master
+                            destination.Range("C6").Value = destination.Range("C6").Value
+                            Application.CutCopyMode = False
+                            
+                Set Date3 = wsSDate.Range(dateCell3).Copy
+                            ActiveSheet.Paste destination:=destination.Range("E6") 'extraction sheet to master
+                            destination.Range("C6").Value = destination.Range("C6").Value
+                            Application.CutCopyMode = False
+                
+                
+                On Error GoTo 0
+                
+                destination.Activate
+                
+                
+                        
+End Sub
+
+Public Sub flatbushToMaster()
+        
+        Range("C7").FormulaArray = _
+        "=INDEX(AllGridTemp!$C$3:$C$76, MATCH(Flatbush!A7&Flatbush!B7,AllGridTemp!$A$3:$A$76&AllGridTemp!$B$3:$B$76,0))"
+              Set SourceRange = Worksheets("Flatbush").Range("C7")
+              Set fillRange = Worksheets("Flatbush").Range("C7:C80")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+           
+           'flatbush to master day 1
+           
+           Range("D7").FormulaArray = _
+        "=INDEX(AllGridTemp!$D$3:$D$76, MATCH(Flatbush!A7&Flatbush!B7,AllGridTemp!$A$3:$A$76&AllGridTemp!$B$3:$B$76,0))"
+              Set SourceRange = Worksheets("Flatbush").Range("D7")
+              Set fillRange = Worksheets("Flatbush").Range("D7:D80")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+              
+            'flatbush to master day 2
+            
+    
+            Range("E7").FormulaArray = _
+        "=INDEX(AllGridTemp!$E$3:$E$76, MATCH(Flatbush!A7&Flatbush!B7,AllGridTemp!$A$3:$A$76&AllGridTemp!$B$3:$B$76,0))"
+              Set SourceRange = Worksheets("Flatbush").Range("E7")
+              Set fillRange = Worksheets("Flatbush").Range("E7:E80")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+              
+            'flatbush to master day 3
+            
+            
+        Range("C7:E80").Value = Range("C7:E80").Value
+        Range("C7:E80").Font.ColorIndex = 0 'resets the font color to black
+        Range("C7:E80").Interior.Color = RGB(255, 255, 255) 'resets background to white
+        
+        Sheets("AllGridTemp").Range("A3:E999").ClearContents 'deletes contents in allgridtemp after done using them
+
+        
+End Sub
+
+Public Sub richmondToMaster()
+
+        Range("C7").FormulaArray = _
+        "=INDEX(AllGridTemp!$C$3:$C$48, MATCH('Richmond Hill'!A7&'Richmond Hill'!B7,AllGridTemp!$A$3:$A$48&AllGridTemp!$B$3:$B$48,0))"
+              Set SourceRange = Worksheets("Richmond Hill").Range("C7")
+              Set fillRange = Worksheets("Richmond Hill").Range("C7:C52")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+            
+           'richmond to master day 1
+           
+           Range("D7").FormulaArray = _
+        "=INDEX(AllGridTemp!$D$3:$D$48, MATCH('Richmond Hill'!A7&'Richmond Hill'!B7,AllGridTemp!$A$3:$A$48&AllGridTemp!$B$3:$B$48,0))"
+              Set SourceRange = Worksheets("Richmond Hill").Range("D7")
+              Set fillRange = Worksheets("Richmond Hill").Range("D7:D52")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+              
+            'richmond to master day 2
+            
+    
+            Range("E7").FormulaArray = _
+        "=INDEX(AllGridTemp!$E$3:$E$48, MATCH('Richmond Hill'!A7&'Richmond Hill'!B7,AllGridTemp!$A$3:$A$48&AllGridTemp!$B$3:$B$48,0))"
+              Set SourceRange = Worksheets("Richmond Hill").Range("E7")
+              Set fillRange = Worksheets("Richmond Hill").Range("E7:E52")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+              
+            'richmond to master day 3
+            
+        Range("C7:E52").Value = Range("C7:E52").Value
+        Range("C7:E52").Font.ColorIndex = 0
+        Range("C7:E52").Interior.Color = RGB(255, 255, 255)
+        
+        Sheets("AllGridTemp").Range("A3:E999").ClearContents
+End Sub
+
+Public Sub livoniaToMaster()
+
+        Range("C7").FormulaArray = _
+        "=INDEX(AllGridTemp!$C$3:$C$22, MATCH('Livonia MB'!A7&'Livonia MB'!B7,AllGridTemp!$A$3:$A$22&AllGridTemp!$B$3:$B$22,0))"
+              Set SourceRange = Worksheets("Livonia MB").Range("C7")
+              Set fillRange = Worksheets("Livonia MB").Range("C7:C26")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+            
+           'Livonia MB to master day 1
+           
+           Range("D7").FormulaArray = _
+        "=INDEX(AllGridTemp!$D$3:$D$22, MATCH('Livonia MB'!A7&'Livonia MB'!B7,AllGridTemp!$A$3:$A$22&AllGridTemp!$B$3:$B$22,0))"
+              Set SourceRange = Worksheets("Livonia MB").Range("D7")
+              Set fillRange = Worksheets("Livonia MB").Range("D7:D26")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+              
+            'Livonia MB to master day 2
+            
+    
+           Range("E7").FormulaArray = _
+        "=INDEX(AllGridTemp!$E$3:$E$22, MATCH('Livonia MB'!A7&'Livonia MB'!B7,AllGridTemp!$A$3:$A$22&AllGridTemp!$B$3:$B$22,0))"
+              Set SourceRange = Worksheets("Livonia MB").Range("E7")
+              Set fillRange = Worksheets("Livonia MB").Range("E7:E26")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+              
+            'Livonia MB to master day 3
+            
+           
+        Range("C7:E26").Value = Range("C7:E26").Value
+        Range("C7:E26").Font.ColorIndex = 0
+        Range("C7:E26").Interior.Color = RGB(255, 255, 255)
+        
+        Sheets("AllGridTemp").Range("A3:E999").ClearContents
+        
+End Sub
+
+Public Sub regoToMaster()
+    
+        Range("C7").FormulaArray = _
+        "=INDEX(AllGridTemp!$C$3:$C$43, MATCH('Rego Park'!A7&'Rego Park'!B7,AllGridTemp!$A$3:$A$43&AllGridTemp!$B$3:$B$43,0))"
+              Set SourceRange = Worksheets("Rego Park").Range("C7")
+              Set fillRange = Worksheets("Rego Park").Range("C7:C47")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+            
+           'Rego Park to master day 1
+           
+           Range("D7").FormulaArray = _
+        "=INDEX(AllGridTemp!$D$3:$D$43, MATCH('Rego Park'!A7&'Rego Park'!B7,AllGridTemp!$A$3:$A$47&AllGridTemp!$B$3:$B$43,0))"
+              Set SourceRange = Worksheets("Rego Park").Range("D7")
+              Set fillRange = Worksheets("Rego Park").Range("D7:D47")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+              
+            'Rego Park to master day 2
+            
+    
+        Range("E7").FormulaArray = _
+        "=INDEX(AllGridTemp!$E$3:$E$43, MATCH('Rego Park'!A7&'Rego Park'!B7,AllGridTemp!$A$3:$A$43&AllGridTemp!$B$3:$B$43,0))"
+              Set SourceRange = Worksheets("Rego Park").Range("E7")
+              Set fillRange = Worksheets("Rego Park").Range("E7:E47")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+              
+            'Rego Park to master day 3
+        
+        Range("C7:E47").Value = Range("C7:E47").Value
+        Range("C7:E47").Font.ColorIndex = 0
+        Range("C7:E47").Interior.Color = RGB(255, 255, 255)
+        
+        Sheets("AllGridTemp").Range("A3:E999").ClearContents
+End Sub
+
+Public Sub flushingToMaster()
+
+        Range("C7").FormulaArray = _
+        "=INDEX(AllGridTemp!$C$3:$C$82, MATCH('Flushing'!A7&'Flushing'!B7,AllGridTemp!$A$3:$A$82&AllGridTemp!$B$3:$B$82,0))"
+              Set SourceRange = Worksheets("Flushing").Range("C7")
+              Set fillRange = Worksheets("Flushing").Range("C7:C78")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+            
+           'Flushing to master day 1
+           
+           Range("D7").FormulaArray = _
+        "=INDEX(AllGridTemp!$D$3:$D$82, MATCH('Flushing'!A7&'Flushing'!B7,AllGridTemp!$A$3:$A$82&AllGridTemp!$B$3:$B$82,0))"
+              Set SourceRange = Worksheets("Flushing").Range("D7")
+              Set fillRange = Worksheets("Flushing").Range("D7:D78")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+              
+            'Flushing to master day 2
+            
+    
+            Range("E7").FormulaArray = _
+        "=INDEX(AllGridTemp!$E$3:$E$82, MATCH('Flushing'!A7&'Flushing'!B7,AllGridTemp!$A$3:$A$82&AllGridTemp!$B$3:$B$82,0))"
+              Set SourceRange = Worksheets("Flushing").Range("E7")
+              Set fillRange = Worksheets("Flushing").Range("E7:E78")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+              
+            'Flushing to master day 3
+            
+        Range("C7:E78").Value = Range("C7:E78").Value
+        Range("C7:E78").Font.ColorIndex = 0
+        Range("C7:E78").Interior.Color = RGB(255, 255, 255)
+        
+        Sheets("AllGridTemp").Range("A3:E999").ClearContents
+End Sub
+
+Public Sub flushingMBToMaster()
+
+        Range("C7").FormulaArray = _
+        "=INDEX(AllGridTemp!$C$3:$C$15, MATCH('Flushing MB'!A7&'Flushing MB'!B7,AllGridTemp!$A$3:$A$15&AllGridTemp!$B$3:$B$15,0))"
+              Set SourceRange = Worksheets("Flushing MB").Range("C7")
+              Set fillRange = Worksheets("Flushing MB").Range("C7:C19")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+            
+           'Flushing MB to master day 1
+           
+           Range("D7").FormulaArray = _
+        "=INDEX(AllGridTemp!$D$3:$D$15, MATCH('Flushing MB'!A7&'Flushing MB'!B7,AllGridTemp!$A$3:$A$15&AllGridTemp!$B$3:$B$15,0))"
+              Set SourceRange = Worksheets("Flushing MB").Range("D7")
+              Set fillRange = Worksheets("Flushing MB").Range("D7:D19")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+              
+            'Flushing MB to master day 2
+            
+    
+            Range("E7").FormulaArray = _
+        "=INDEX(AllGridTemp!$E$3:$E$15, MATCH('Flushing MB'!A7&'Flushing MB'!B7,AllGridTemp!$A$3:$A$15&AllGridTemp!$B$3:$B$15,0))"
+              Set SourceRange = Worksheets("Flushing MB").Range("E7")
+              Set fillRange = Worksheets("Flushing MB").Range("E7:E19")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+              
+            'Flushing MB to master day 3
+            
+        Range("C7:E19").Value = Range("C7:E19").Value
+        Range("C7:E19").Font.ColorIndex = 0
+        Range("C7:E19").Interior.Color = RGB(255, 255, 255)
+        
+        Sheets("AllGridTemp").Range("A3:E999").ClearContents
+End Sub
+
+Public Sub hollisToMaster()
+
+        Range("C7").FormulaArray = _
+        "=INDEX(AllGridTemp!$C$3:$C$14, MATCH('Hollis MB'!A7&'Hollis MB'!B7,AllGridTemp!$A$3:$A$14&AllGridTemp!$B$3:$B$14,0))"
+              Set SourceRange = Worksheets("Hollis MB").Range("C7")
+              Set fillRange = Worksheets("Hollis MB").Range("C7:C18")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+            
+           'Hollis MB to master day 1
+           
+           Range("D7").FormulaArray = _
+        "=INDEX(AllGridTemp!$D$3:$D$14, MATCH('Hollis MB'!A7&'Hollis MB'!B7,AllGridTemp!$A$3:$A$14&AllGridTemp!$B$3:$B$14,0))"
+              Set SourceRange = Worksheets("Hollis MB").Range("D7")
+              Set fillRange = Worksheets("Hollis MB").Range("D7:D18")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+              
+            'Hollis MB to master day 2
+            
+    
+            Range("E7").FormulaArray = _
+        "=INDEX(AllGridTemp!$E$3:$E$14, MATCH('Hollis MB'!A7&'Hollis MB'!B7,AllGridTemp!$A$3:$A$14&AllGridTemp!$B$3:$B$14,0))"
+              Set SourceRange = Worksheets("Hollis MB").Range("E7")
+              Set fillRange = Worksheets("Hollis MB").Range("E7:E18")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+              
+            'Hollis MB to master day 3
+           
+        Range("C7:E18").Value = Range("C7:E18").Value
+        Range("C7:E18").Font.ColorIndex = 0
+        Range("C7:E18").Interior.Color = RGB(255, 255, 255)
+        
+        Sheets("AllGridTemp").Range("A3:E999").ClearContents
+End Sub
+
+Public Sub glenToMaster()
+    
+        Range("C7").FormulaArray = _
+        "=INDEX(AllGridTemp!$C$3:$C$30, MATCH('Glen Oaks'!A7&'Glen Oaks'!B7,AllGridTemp!$A$3:$A$30&AllGridTemp!$B$3:$B$30,0))"
+              Set SourceRange = Worksheets("Glen Oaks").Range("C7")
+              Set fillRange = Worksheets("Glen Oaks").Range("C7:C34")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+            
+           'Glen Oaks to master day 1
+           
+           Range("D7").FormulaArray = _
+        "=INDEX(AllGridTemp!$D$3:$D$30, MATCH('Glen Oaks'!A7&'Glen Oaks'!B7,AllGridTemp!$A$3:$A$30&AllGridTemp!$B$3:$B$30,0))"
+              Set SourceRange = Worksheets("Glen Oaks").Range("D7")
+              Set fillRange = Worksheets("Glen Oaks").Range("D7:D34")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+              
+            'Glen Oaks to master day 2
+            
+    
+            Range("E7").FormulaArray = _
+        "=INDEX(AllGridTemp!$E$3:$E$30, MATCH('Glen Oaks'!A7&'Glen Oaks'!B7,AllGridTemp!$A$3:$A$30&AllGridTemp!$B$3:$B$30,0))"
+              Set SourceRange = Worksheets("Glen Oaks").Range("E7")
+              Set fillRange = Worksheets("Glen Oaks").Range("E7:E34")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+              
+            'Glen Oaks to master day 3
+            
+        Range("C7:E34").Value = Range("C7:E34").Value
+        Range("C7:E34").Font.ColorIndex = 0
+        Range("C7:E34").Interior.Color = RGB(255, 255, 255)
+        
+        Sheets("AllGridTemp").Range("A3:E999").ClearContents
+        
+End Sub
+
+Public Sub jamaicaToMaster()
+    
+        Range("C7").FormulaArray = _
+        "=INDEX(AllGridTemp!$C$3:$C$84, MATCH(Jamaica!A7&Jamaica!B7,AllGridTemp!$A$3:$A$84&AllGridTemp!$B$3:$B$84,0))"
+              Set SourceRange = Worksheets("Jamaica").Range("C7")
+              Set fillRange = Worksheets("Jamaica").Range("C7:C88")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+            
+           'jamaica to master day 1
+           
+           Range("D7").FormulaArray = _
+        "=INDEX(AllGridTemp!$D$3:$D$84, MATCH(Jamaica!A7&Jamaica!B7,AllGridTemp!$A$3:$A$84&AllGridTemp!$B$3:$B84,0))"
+              Set SourceRange = Worksheets("Jamaica").Range("D7")
+              Set fillRange = Worksheets("Jamaica").Range("D7:D88")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+              
+            'jamaica to master day 2
+            
+    
+        Range("E7").FormulaArray = _
+        "=INDEX(AllGridTemp!$E$3:$E$84, MATCH(Jamaica!A7&Jamaica!B7,AllGridTemp!$A$3:$A$84&AllGridTemp!$B$3:$B$84,0))"
+              Set SourceRange = Worksheets("Jamaica").Range("E7")
+              Set fillRange = Worksheets("Jamaica").Range("E7:E88")
+              SourceRange.AutoFill destination:=fillRange, Type:=xlFillValues
+              
+            'jamaica to master day 3
+            
+        Range("C7:E88").Value = Range("C7:E88").Value
+        Range("C7:E88").Font.ColorIndex = 0 'resets the font color to black
+        Range("C7:E88").Interior.Color = RGB(255, 255, 255) 'resets background to white
+        
+        
+        Sheets("AllGridTemp").Range("A3:E999").ClearContents
+        
+End Sub
+
+
+
+
